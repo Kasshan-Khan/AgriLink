@@ -22,6 +22,10 @@ const produceSchema = new mongoose.Schema(
       required: [true, 'Quantity is required'],
       min: [0.1, 'Quantity must be positive'],
     },
+    remainingQuantity: {
+      type: Number,
+      min: [0, 'Remaining quantity cannot be negative'],
+    },
     price: {
       type: Number,
       required: [true, 'Price is required'],
@@ -44,9 +48,12 @@ const produceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Calculate total before saving
+// Calculate total before saving and init remainingQuantity
 produceSchema.pre('save', function (next) {
   this.totalAmount = this.quantity * this.price;
+  if (this.isNew || this.remainingQuantity === undefined) {
+    this.remainingQuantity = this.quantity;
+  }
   next();
 });
 

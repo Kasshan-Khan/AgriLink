@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['admin', 'manager', 'farmer'],
+      enum: ['admin', 'manager', 'farmer', 'buyer'],
       default: 'farmer',
     },
     landSize: {
@@ -42,6 +42,15 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Center',
       default: null,
+    },
+    // Buyer specific fields
+    companyName: {
+      type: String,
+      default: '',
+    },
+    gstNumber: {
+      type: String,
+      default: '',
     },
   },
   { timestamps: true }

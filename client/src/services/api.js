@@ -48,4 +48,18 @@ export const createManager = (data) => API.post('/users/managers', data);
 export const updateUser = (id, data) => API.put(`/users/${id}`, data);
 export const getUserStats = () => API.get('/users/stats');
 
+// Pricing
+export const getPricing = () => API.get('/pricing');
+export const getBuyerPrice = (params) => API.get('/pricing/buyer', { params });
+export const createPricing = (data) => API.post('/pricing', data);
+export const updatePricing = (id, data) => API.put(`/pricing/${id}`, data);
+export const deletePricing = (id) => API.delete(`/pricing/${id}`);
+
+// Orders
+export const getAvailableStock = () => API.get('/orders/stock');
+export const placeOrder = (data) => API.post('/orders', data);
+export const getMyOrders = () => API.get('/orders/my');
+export const getAllOrders = () => API.get('/orders');
+export const updateOrderStatus = (id, data) => API.put(`/orders/${id}/status`, data);
+
 export default API;

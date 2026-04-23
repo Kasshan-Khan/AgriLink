@@ -13,7 +13,7 @@ const generateToken = (id) => {
 // @access  Public
 const register = async (req, res) => {
   try {
-    const { name, email, phone, password, landSize, location } = req.body;
+    const { name, email, phone, password, role, landSize, location, companyName, gstNumber } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -25,13 +25,17 @@ const register = async (req, res) => {
       email,
       phone,
       password,
-      role: 'farmer',
+      role: role === 'buyer' ? 'buyer' : 'farmer',
       landSize,
       location,
+      companyName,
+      gstNumber,
     });
 
     // Create a credit record for the farmer
-    await Credit.create({ farmerId: user._id });
+    if (user.role === 'farmer') {
+      await Credit.create({ farmerId: user._id });
+    }
 
     const token = generateToken(user._id);
 
@@ -45,6 +49,8 @@ const register = async (req, res) => {
         role: user.role,
         landSize: user.landSize,
         location: user.location,
+        companyName: user.companyName,
+        gstNumber: user.gstNumber,
       },
     });
   } catch (error) {
@@ -81,6 +87,8 @@ const login = async (req, res) => {
         role: user.role,
         landSize: user.landSize,
         location: user.location,
+        companyName: user.companyName,
+        gstNumber: user.gstNumber,
         assignedCenter: user.assignedCenter,
       },
     });

@@ -10,6 +10,8 @@ const centerRoutes = require('./routes/centerRoutes');
 const produceRoutes = require('./routes/produceRoutes');
 const creditRoutes = require('./routes/creditRoutes');
 const userRoutes = require('./routes/userRoutes');
+const pricingRoutes = require('./routes/pricingRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
 const app = express();
 
@@ -28,6 +30,8 @@ app.use('/api/centers', centerRoutes);
 app.use('/api/produce', produceRoutes);
 app.use('/api/credits', creditRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/pricing', pricingRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

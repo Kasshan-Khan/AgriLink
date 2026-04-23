@@ -4,11 +4,14 @@ import {
   getCenters, createCenter, deleteCenter, assignManager,
   getAllProduce, getProduceStats, getCreditStats, getUserStats,
   getUsers, getFarmers, createManager, issueCredit, recordRepayment,
+  getPricing, createPricing, deletePricing,
+  getAllOrders, updateOrderStatus,
 } from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
 import {
   FiMapPin, FiUsers, FiPackage, FiDollarSign, FiPlusCircle,
-  FiTrash2, FiBarChart2, FiImage, FiDownload, FiTrendingUp, FiUserPlus
+  FiTrash2, FiBarChart2, FiImage, FiDownload, FiTrendingUp, FiUserPlus,
+  FiTag, FiShoppingCart,
 } from 'react-icons/fi';
 import { GiWheat } from 'react-icons/gi';
 import {
@@ -22,7 +25,7 @@ const AdminDashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const pathSegment = location.pathname.split('/').pop();
-  const tab = ['centers', 'produce', 'credits', 'users', 'analytics'].includes(pathSegment) ? pathSegment : 'overview';
+  const tab = ['centers', 'produce', 'credits', 'users', 'analytics', 'pricing', 'orders'].includes(pathSegment) ? pathSegment : 'overview';
   const setTab = (t) => navigate(t === 'overview' ? '/admin' : `/admin/${t}`);
   const [centers, setCenters] = useState([]);
   const [produce, setProduce] = useState([]);
@@ -31,6 +34,8 @@ const AdminDashboard = () => {
   const [userStats, setUserStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [farmers, setFarmers] = useState([]);
+  const [pricing, setPricing] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Center form
@@ -48,13 +53,17 @@ const AdminDashboard = () => {
   const [showManagerForm, setShowManagerForm] = useState(false);
   const [managerForm, setManagerForm] = useState({ name: '', email: '', phone: '', password: '' });
 
+  // Pricing form
+  const [showPricingForm, setShowPricingForm] = useState(false);
+  const [pricingForm, setPricingForm] = useState({ cropType: 'Wheat', centerId: '', basePrice: '' });
+
   useEffect(() => {
     fetchAll();
   }, []);
 
   const fetchAll = async () => {
     try {
-      const [centersR, produceR, pStatsR, cStatsR, uStatsR, usersR, farmersR] = await Promise.all([
+      const [centersR, produceR, pStatsR, cStatsR, uStatsR, usersR, farmersR, pricingR, ordersR] = await Promise.all([
         getCenters(),
         getAllProduce(),
         getProduceStats(),
@@ -62,6 +71,8 @@ const AdminDashboard = () => {
         getUserStats(),
         getUsers(),
         getFarmers(),
+        getPricing(),
+        getAllOrders(),
       ]);
       setCenters(centersR.data.centers);
       setProduce(produceR.data.produce);
@@ -70,6 +81,8 @@ const AdminDashboard = () => {
       setUserStats(uStatsR.data);
       setUsers(usersR.data.users);
       setFarmers(farmersR.data.farmers);
+      setPricing(pricingR.data);
+      setOrders(ordersR.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -593,6 +606,156 @@ const AdminDashboard = () => {
                 </ResponsiveContainer>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ===== PRICING TAB ===== */}
+      {tab === 'pricing' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="section-header">Pricing Management</h2>
+            <button onClick={() => setShowPricingForm(!showPricingForm)} className="btn-primary flex items-center gap-2">
+              <FiPlusCircle /> Add Pricing Rule
+            </button>
+          </div>
+
+          {showPricingForm && (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                await createPricing(pricingForm);
+                toast.success('Pricing rule created!');
+                setPricingForm({ cropType: 'Wheat', centerId: '', basePrice: '' });
+                setShowPricingForm(false);
+                fetchAll();
+              } catch (err) {
+                toast.error(err.response?.data?.message || 'Failed');
+              }
+            }} className="glass-card p-6 animate-slide-up">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Crop Type</label>
+                  <select required value={pricingForm.cropType} onChange={e => setPricingForm({...pricingForm, cropType: e.target.value})} className="input-field">
+                    <option value="Wheat">Wheat</option>
+                    <option value="Rice">Rice</option>
+                    <option value="Potato">Potato</option>
+                    <option value="Onion">Onion</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Center</label>
+                  <select value={pricingForm.centerId} onChange={e => setPricingForm({...pricingForm, centerId: e.target.value})} className="input-field">
+                    <option value="">Global Default (All Centers)</option>
+                    {centers.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Base Price / kg (₹)</label>
+                  <input required type="number" step="0.5" min="0" value={pricingForm.basePrice} onChange={e => setPricingForm({...pricingForm, basePrice: e.target.value})} className="input-field" placeholder="Base price" />
+                  <p className="text-xs text-gray-400 mt-1">Note: Buyers will see this + ₹2.5 margin (+ logistics)</p>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-4">
+                <button type="submit" className="btn-primary">Save Pricing</button>
+                <button type="button" onClick={() => setShowPricingForm(false)} className="btn-secondary">Cancel</button>
+              </div>
+            </form>
+          )}
+
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Crop</th>
+                  <th>Center Coverage</th>
+                  <th>Base Price (₹/kg)</th>
+                  <th>Final Partner Price (₹/kg)</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pricing.map((p) => (
+                  <tr key={p._id}>
+                    <td className="font-medium text-gray-900">{p.cropType}</td>
+                    <td>{p.centerId ? <span className="badge-blue">{p.centerId.name}</span> : <span className="badge-green">Global Default</span>}</td>
+                    <td>₹{p.basePrice.toFixed(2)}</td>
+                    <td className="text-gray-500 font-medium">₹{(p.basePrice + 2.5 + 5.0).toFixed(2)}</td>
+                    <td>
+                      <button onClick={async () => {
+                        if (!window.confirm('Delete this pricing rule?')) return;
+                        try {
+                          await deletePricing(p._id);
+                          toast.success('Deleted');
+                          fetchAll();
+                        } catch (err) { toast.error('Failed to delete'); }
+                      }} className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                        <FiTrash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {pricing.length === 0 && <tr><td colSpan="5" className="text-center py-4 text-gray-500">No pricing rules defined.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ===== ORDERS TAB ===== */}
+      {tab === 'orders' && (
+        <div className="space-y-6">
+          <h2 className="section-header">Buyer Orders</h2>
+
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Buyer</th>
+                  <th>Type</th>
+                  <th>Total (₹)</th>
+                  <th>Logistics</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((o) => (
+                  <tr key={o._id}>
+                    <td className="text-xs font-mono text-gray-500">{o._id.slice(-6).toUpperCase()}</td>
+                    <td>
+                      <p className="font-medium text-gray-900">{o.buyerId?.name}</p>
+                      <p className="text-xs text-gray-500">{o.buyerId?.companyName || o.buyerId?.email}</p>
+                    </td>
+                    <td><span className={o.orderType === 'preorder' ? 'badge-blue' : 'badge-green'}>{o.orderType}</span></td>
+                    <td className="font-bold">₹{o.totalAmount?.toLocaleString()}</td>
+                    <td>{o.logistics === 'partner' ? 'AgriLink Partner' : 'Self Pickup'}</td>
+                    <td><span className={`badge-${o.status === 'delivered' ? 'green' : o.status === 'pending' ? 'yellow' : o.status === 'cancelled' ? 'red' : 'blue'}`}>{o.status}</span></td>
+                    <td>
+                      <select 
+                        value={o.status} 
+                        onChange={async (e) => {
+                          try {
+                            await updateOrderStatus(o._id, { status: e.target.value });
+                            toast.success('Status updated');
+                            fetchAll();
+                          } catch (err) { toast.error('Update failed'); }
+                        }}
+                        className="input-field text-xs py-1 px-2 w-auto"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="booked">Booked</option>
+                        <option value="dispatched">Dispatched</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+                {orders.length === 0 && <tr><td colSpan="7" className="text-center py-4 text-gray-500">No orders found.</td></tr>}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

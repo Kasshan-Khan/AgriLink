@@ -4,6 +4,8 @@ const User = require('../models/User');
 const Center = require('../models/Center');
 const Produce = require('../models/Produce');
 const Credit = require('../models/Credit');
+const Pricing = require('../models/Pricing');
+const Order = require('../models/Order');
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/agrilink';
 
@@ -17,6 +19,8 @@ const seedData = async () => {
     await Center.deleteMany({});
     await Produce.deleteMany({});
     await Credit.deleteMany({});
+    await Pricing.deleteMany({});
+    await Order.deleteMany({});
     console.log('Cleared existing data.');
 
     // --- Create Users (plain-text passwords — model pre-save hook hashes them) ---
@@ -60,6 +64,20 @@ const seedData = async () => {
         role: 'farmer',
       });
       farmers.push(farmer);
+    }
+
+    const buyers = [];
+    const buyerData = [
+      { name: 'FreshMart Ltd', email: 'buyer1@agrilink.com', phone: '9876543001', companyName: 'FreshMart Ltd', gstNumber: '07AAAAA0000A1Z5', location: 'Delhi NCR' },
+      { name: 'GreenGrocers Co', email: 'buyer2@agrilink.com', phone: '9876543002', companyName: 'GreenGrocers Co', gstNumber: '27BBBBB0000B1Z5', location: 'Mumbai, Maharashtra' },
+    ];
+    for (const bd of buyerData) {
+      const buyer = await User.create({
+        ...bd,
+        password: 'buyer123',
+        role: 'buyer',
+      });
+      buyers.push(buyer);
     }
 
     console.log(`Created ${farmers.length + 3} users.`);
@@ -114,13 +132,16 @@ const seedData = async () => {
       const date = new Date();
       date.setDate(date.getDate() - daysAgo);
 
+      const status = ['pending', 'accepted', 'accepted', 'accepted'][Math.floor(Math.random() * 4)];
+
       const produce = await Produce.create({
         centerId: center._id,
         farmerId: farmer._id,
         cropType: crop,
         quantity,
+        remainingQuantity: status === 'accepted' ? quantity : 0, 
         price,
-        status: ['pending', 'accepted', 'accepted', 'accepted'][Math.floor(Math.random() * 4)],
+        status,
         createdAt: date,
       });
       produceEntries.push(produce);
@@ -161,12 +182,49 @@ const seedData = async () => {
     }
 
     console.log('Created credit records for all farmers.');
+
+    // --- Create Pricing ---
+    const pricingData = [
+      { cropType: 'Wheat', centerId: null, basePrice: 22 },
+      { cropType: 'Rice', centerId: null, basePrice: 24 },
+      { cropType: 'Potato', centerId: null, basePrice: 6 },
+      { cropType: 'Onion', centerId: null, basePrice: 9 },
+    ];
+    await Pricing.insertMany(pricingData);
+    console.log('Created pricing rules.');
+
+    // --- Create sample Orders ---
+    // Fetch a couple of accepted produces to make simulated orders
+    const stockProduce = await Produce.find({ status: 'accepted', remainingQuantity: { $gt: 50 } }).limit(2);
+    if (stockProduce.length > 0) {
+      await Order.create({
+        buyerId: buyers[0]._id,
+        items: [{
+          cropType: stockProduce[0].cropType,
+          centerId: stockProduce[0].centerId,
+          quantity: 50,
+          basePricePerKg: 22,
+          marginPerKg: 2.5,
+          deliveryPerKg: 5,
+          finalPricePerKg: 29.5,
+          subtotal: 50 * 29.5,
+        }],
+        orderType: 'immediate',
+        logistics: 'partner',
+        deliveryAddress: 'Delhi NCR FreshMart Warehouse',
+        totalAmount: 50 * 29.5,
+        status: 'booked',
+      });
+      console.log('Created sample orders.');
+    }
+
     console.log('\n✅ Seed data created successfully!');
     console.log('\n--- Demo Accounts ---');
     console.log('Admin:   admin@agrilink.com / admin123');
     console.log('Manager: manager1@agrilink.com / manager123');
     console.log('Manager: manager2@agrilink.com / manager123');
     console.log('Farmer:  farmer1@agrilink.com / farmer123');
+    console.log('Buyer:   buyer1@agrilink.com / buyer123');
 
     process.exit(0);
   } catch (error) {

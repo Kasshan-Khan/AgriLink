@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getProduceByCenter, createProduce, getFarmers } from '../services/api';
+import { getProduceByCenter, createProduce, getFarmers, getAllOrders, updateOrderStatus } from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
-import { FiPackage, FiPlusCircle, FiUpload, FiCalendar, FiImage, FiHome, FiList } from 'react-icons/fi';
+import { FiPackage, FiPlusCircle, FiUpload, FiCalendar, FiImage, FiHome, FiList, FiShoppingBag } from 'react-icons/fi';
 import { GiWheat } from 'react-icons/gi';
 
 const ManagerDashboard = () => {
@@ -11,9 +11,10 @@ const ManagerDashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const pathSegment = location.pathname.split('/').pop();
-  const section = pathSegment === 'add-produce' ? 'add-produce' : pathSegment === 'records' ? 'records' : 'overview';
+  const section = pathSegment === 'add-produce' ? 'add-produce' : pathSegment === 'records' ? 'records' : pathSegment === 'orders' ? 'orders' : 'overview';
   const [produce, setProduce] = useState([]);
   const [farmers, setFarmers] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(section === 'add-produce');
   const [submitting, setSubmitting] = useState(false);
@@ -28,12 +29,20 @@ const ManagerDashboard = () => {
     const fetchData = async () => {
       try {
         if (centerId) {
-          const [produceRes, farmersRes] = await Promise.all([
+          const [produceRes, farmersRes, ordersRes] = await Promise.all([
             getProduceByCenter(centerId),
             getFarmers(),
+            getAllOrders(),
           ]);
           setProduce(produceRes.data.produce);
           setFarmers(farmersRes.data.farmers);
+          
+          // Filter orders for this specific center only
+          // Items in an order is an array so check if any item belongs to this center
+          const centerOrders = ordersRes.data.filter(order => 
+            order.items.some(item => item.centerId?._id === centerId || item.centerId === centerId)
+          );
+          setOrders(centerOrders);
         }
       } catch (err) {
         console.error(err);
@@ -341,6 +350,69 @@ const ManagerDashboard = () => {
                     </tr>
                   ))
                 )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ===== ORDERS SECTION ===== */}
+      {section === 'orders' && (
+        <div className="space-y-6">
+          <h2 className="section-header">Center Orders</h2>
+
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Buyer</th>
+                  <th>Type</th>
+                  <th>Total (₹)</th>
+                  <th>Logistics</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((o) => (
+                  <tr key={o._id}>
+                    <td className="text-xs font-mono text-gray-500">{o._id.slice(-6).toUpperCase()}</td>
+                    <td>
+                      <p className="font-medium text-gray-900">{o.buyerId?.name || 'Unknown'}</p>
+                      <p className="text-xs text-gray-500">{o.buyerId?.companyName || o.buyerId?.email}</p>
+                    </td>
+                    <td><span className={o.orderType === 'preorder' ? 'badge-blue' : 'badge-green'}>{o.orderType}</span></td>
+                    <td className="font-bold">₹{o.totalAmount?.toLocaleString()}</td>
+                    <td>{o.logistics === 'partner' ? 'AgriLink Partner' : 'Self Pickup'}</td>
+                    <td><span className={`badge-${o.status === 'delivered' ? 'green' : o.status === 'pending' ? 'yellow' : o.status === 'cancelled' ? 'red' : 'blue'}`}>{o.status}</span></td>
+                    <td>
+                      <select 
+                        value={o.status} 
+                        onChange={async (e) => {
+                          try {
+                            await updateOrderStatus(o._id, { status: e.target.value });
+                            toast.success('Status updated');
+                            // Re-fetch to sync
+                            const ordersRes = await getAllOrders();
+                            const centerOrders = ordersRes.data.filter(order => 
+                              order.items.some(item => item.centerId?._id === centerId || item.centerId === centerId)
+                            );
+                            setOrders(centerOrders);
+                          } catch (err) { toast.error('Update failed'); }
+                        }}
+                        className="input-field text-xs py-1 px-2 w-auto"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="booked">Booked</option>
+                        <option value="dispatched">Dispatched</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+                {orders.length === 0 && <tr><td colSpan="7" className="text-center py-8 text-gray-400"><FiShoppingBag className="mx-auto mb-2" size={28}/>No orders for this center yet.</td></tr>}
               </tbody>
             </table>
           </div>

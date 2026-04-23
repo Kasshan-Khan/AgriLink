@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { GiWheat } from 'react-icons/gi';
 import {
   FiHome, FiMapPin, FiPackage, FiDollarSign, FiUsers, FiBarChart2,
-  FiPlusCircle, FiList, FiUser, FiSettings
+  FiPlusCircle, FiList, FiUser, FiSettings, FiShoppingBag
 } from 'react-icons/fi';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -20,6 +20,14 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/manager', icon: FiHome, label: 'Overview' },
     { to: '/manager/add-produce', icon: FiPlusCircle, label: 'Add Produce' },
     { to: '/manager/records', icon: FiList, label: 'Records' },
+    { to: '/manager/orders', icon: FiShoppingBag, label: 'Orders' },
+  ];
+
+  const buyerLinks = [
+    { to: '/buyer', icon: FiHome, label: 'Overview' },
+    { to: '/buyer/stock', icon: FiPackage, label: 'Browse Stock' },
+    { to: '/buyer/orders', icon: FiShoppingBag, label: 'My Orders' },
+    { to: '/buyer/profile', icon: FiUser, label: 'Business Profile' },
   ];
 
   const adminLinks = [
@@ -31,7 +39,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/admin/analytics', icon: FiBarChart2, label: 'Analytics' },
   ];
 
-  const links = user?.role === 'admin' ? adminLinks : user?.role === 'manager' ? managerLinks : farmerLinks;
+  const links = user?.role === 'admin' ? adminLinks : user?.role === 'manager' ? managerLinks : user?.role === 'buyer' ? buyerLinks : farmerLinks;
 
   return (
     <>
@@ -66,7 +74,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               <NavLink
                 key={to}
                 to={to}
-                end={to === '/farmer' || to === '/manager' || to === '/admin'}
+                end={to === '/farmer' || to === '/manager' || to === '/admin' || to === '/buyer'}
                 className={({ isActive }) => isActive ? 'sidebar-link-active' : 'sidebar-link'}
                 onClick={onClose}
               >

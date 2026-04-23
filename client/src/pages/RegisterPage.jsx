@@ -12,8 +12,9 @@ const RegisterPage = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState('farmer'); // 'farmer' or 'buyer'
   const [form, setForm] = useState({
-    name: '', email: '', phone: '', password: '', landSize: '', location: '',
+    name: '', email: '', phone: '', password: '', landSize: '', location: '', companyName: '', gstNumber: '',
   });
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -22,10 +23,11 @@ const RegisterPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await registerUser(form);
+      const payload = { ...form, role };
+      const { data } = await registerUser(payload);
       login(data.token, data.user);
       toast.success('Account created successfully!');
-      setTimeout(() => navigate('/farmer'), 500);
+      setTimeout(() => navigate(role === 'buyer' ? '/buyer' : '/farmer'), 500);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed');
     } finally {
@@ -33,13 +35,24 @@ const RegisterPage = () => {
     }
   };
 
-  const fields = [
+  const farmerFields = [
     { name: 'name', label: 'Full Name', icon: FiUser, type: 'text', placeholder: 'Suresh Yadav', required: true },
     { name: 'email', label: 'Email', icon: FiMail, type: 'email', placeholder: 'you@example.com', required: true },
     { name: 'phone', label: 'Phone', icon: FiPhone, type: 'tel', placeholder: '+91 98765 43210', required: false },
     { name: 'landSize', label: 'Land Size', icon: GiFarmTractor, type: 'text', placeholder: 'e.g., 5 acres', required: false },
     { name: 'location', label: 'Location', icon: FiMapPin, type: 'text', placeholder: 'Village, District, State', required: false },
   ];
+
+  const buyerFields = [
+    { name: 'name', label: 'Contact Name', icon: FiUser, type: 'text', placeholder: 'Rahul Sharma', required: true },
+    { name: 'companyName', label: 'Company / Business Name', icon: FiUser, type: 'text', placeholder: 'Fresh Foods Ltd.', required: true },
+    { name: 'email', label: 'Email', icon: FiMail, type: 'email', placeholder: 'you@business.com', required: true },
+    { name: 'phone', label: 'Phone', icon: FiPhone, type: 'tel', placeholder: '+91 98765 43210', required: true },
+    { name: 'gstNumber', label: 'GST Number', icon: FiUser, type: 'text', placeholder: '22AAAAA0000A1Z5', required: false },
+    { name: 'location', label: 'Business Address', icon: FiMapPin, type: 'text', placeholder: 'City, State, Pincode', required: true },
+  ];
+
+  const activeFields = role === 'farmer' ? farmerFields : buyerFields;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-900 via-emerald-800 to-green-900 flex items-center justify-center px-4 py-12">
@@ -54,10 +67,25 @@ const RegisterPage = () => {
 
         <div className="glass-card p-8">
           <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">Create Account</h2>
-          <p className="text-gray-500 text-center mb-8">Register as a farmer</p>
+          <p className="text-gray-500 text-center mb-6">Join AgriLink today</p>
+
+          <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+            <button
+              onClick={() => setRole('farmer')}
+              className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all ${role === 'farmer' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              I'm a Farmer
+            </button>
+            <button
+              onClick={() => setRole('buyer')}
+              className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all ${role === 'buyer' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              I'm a Buyer
+            </button>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {fields.map(({ name, label, icon: Icon, type, placeholder, required }) => (
+            {activeFields.map(({ name, label, icon: Icon, type, placeholder, required }) => (
               <div key={name}>
                 <label className="text-sm font-medium text-gray-700 mb-1.5 block">{label}</label>
                 <div className="relative">

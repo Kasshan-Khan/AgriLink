@@ -22,7 +22,10 @@ const LoginPage = () => {
       toast.success(`Welcome back, ${data.user.name}!`);
       setTimeout(() => {
         const role = data.user.role;
-        navigate(role === 'admin' ? '/admin' : role === 'manager' ? '/manager' : '/farmer');
+        if (role === 'admin') navigate('/admin');
+        else if (role === 'manager') navigate('/manager');
+        else if (role === 'buyer') navigate('/buyer');
+        else navigate('/farmer');
       }, 500);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Login failed');

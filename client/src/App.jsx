@@ -9,6 +9,7 @@ import RegisterPage from './pages/RegisterPage';
 import FarmerDashboard from './pages/FarmerDashboard';
 import ManagerDashboard from './pages/ManagerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import BuyerDashboard from './pages/BuyerDashboard';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -51,6 +52,7 @@ function App() {
           <Route index element={<ManagerDashboard />} />
           <Route path="add-produce" element={<ManagerDashboard />} />
           <Route path="records" element={<ManagerDashboard />} />
+          <Route path="orders" element={<ManagerDashboard />} />
         </Route>
 
         {/* Admin Dashboard */}
@@ -66,6 +68,19 @@ function App() {
           <Route path="credits" element={<AdminDashboard />} />
           <Route path="users" element={<AdminDashboard />} />
           <Route path="analytics" element={<AdminDashboard />} />
+        </Route>
+
+        {/* Buyer Dashboard */}
+        <Route path="/buyer" element={
+          <ProtectedRoute allowedRoles={['buyer']}>
+            <Navbar />
+            <DashboardLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<BuyerDashboard />} />
+          <Route path="stock" element={<BuyerDashboard />} />
+          <Route path="orders" element={<BuyerDashboard />} />
+          <Route path="profile" element={<BuyerDashboard />} />
         </Route>
 
         {/* 404 */}
