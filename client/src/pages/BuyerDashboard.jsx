@@ -326,7 +326,7 @@ const BuyerDashboard = () => {
                 {orderPreview ? (
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between text-gray-600">
-                      <span>Rate ({orderPreview.base} + {orderPreview.margin} margin)</span>
+                      <span>Price per kg</span>
                       <span>₹{orderPreview.base + orderPreview.margin}/kg</span>
                     </div>
                     {orderForm.logistics === 'partner' && (
